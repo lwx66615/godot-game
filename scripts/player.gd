@@ -36,6 +36,10 @@ var thirst := 100.0
 var stamina := 100.0
 var sanity := 100.0
 
+# 受伤状态
+var is_light_wounded := false
+var is_heavy_wounded := false
+
 # 体力消耗速率（按设计文档：行走0.5%/秒，奔跑3%/秒）
 const STAMINA_WALK_COST := 0.5   # %/秒
 const STAMINA_RUN_COST := 3.0    # %/秒
@@ -235,3 +239,23 @@ func is_hiding() -> bool:
 # 获取进入躲藏时的移动状态
 func was_moving_when_hiding() -> bool:
 	return was_moving_before_hide
+
+# ==================== 受伤与治疗 ====================
+
+# 治疗轻伤
+func heal_light_wound():
+	is_light_wounded = false
+
+# 治疗重伤
+func heal_heavy_wound():
+	is_heavy_wounded = false
+	is_light_wounded = false
+
+# 受到轻伤
+func take_light_wound():
+	is_light_wounded = true
+
+# 受到重伤
+func take_heavy_wound():
+	is_heavy_wounded = true
+	is_light_wounded = true

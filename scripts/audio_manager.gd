@@ -17,45 +17,45 @@ enum SoundType {
 }
 
 # 音效配置
-var sound_configs := {
+var sound_configs = {
 	# 诡异音效
 	"drag_knife": {
-		"type": SoundType.POSITION_2D,
+		"type": 1,  # POSITION_2D
 		"loop": true,
 		"volume_db": 0.0,
 		"max_distance": 500.0,
-		"attenuation": 2.0  # 衰减系数
+		"attenuation": 2.0
 	},
 	"knock_slow": {
-		"type": SoundType.POSITION_2D,
+		"type": 1,  # POSITION_2D
 		"loop": false,
 		"volume_db": 5.0,
 		"max_distance": 300.0,
 		"attenuation": 1.5
 	},
 	"knock_medium": {
-		"type": SoundType.POSITION_2D,
+		"type": 1,  # POSITION_2D
 		"loop": false,
 		"volume_db": 8.0,
 		"max_distance": 300.0,
 		"attenuation": 1.5
 	},
 	"knock_fast": {
-		"type": SoundType.POSITION_2D,
+		"type": 1,  # POSITION_2D
 		"loop": false,
 		"volume_db": 12.0,
 		"max_distance": 300.0,
 		"attenuation": 1.0
 	},
 	"breach": {
-		"type": SoundType.POSITION_2D,
+		"type": 1,  # POSITION_2D
 		"loop": false,
 		"volume_db": 15.0,
 		"max_distance": 400.0,
 		"attenuation": 1.0
 	},
 	"search_pace": {
-		"type": SoundType.POSITION_2D,
+		"type": 1,  # POSITION_2D
 		"loop": true,
 		"volume_db": -5.0,
 		"max_distance": 200.0,
@@ -64,66 +64,66 @@ var sound_configs := {
 
 	# 玩家音效
 	"footstep_walk": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": false,
 		"volume_db": -10.0
 	},
 	"footstep_run": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": false,
 		"volume_db": 0.0
 	},
 	"heartbeat_slow": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": true,
 		"volume_db": -15.0
 	},
 	"heartbeat_fast": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": true,
 		"volume_db": -5.0
 	},
 	"breath_normal": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": true,
 		"volume_db": -20.0
 	},
 	"breath_stress": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": true,
 		"volume_db": -10.0
 	},
 
 	# 环境音效
 	"door_open": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": false,
 		"volume_db": 0.0
 	},
 	"door_close": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": false,
 		"volume_db": 0.0
 	},
 	"door_creak": {
-		"type": SoundType.POSITION_2D,
+		"type": 1,  # POSITION_2D
 		"loop": false,
 		"volume_db": -5.0,
 		"max_distance": 200.0,
 		"attenuation": 2.0
 	},
 	"wind_day": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": true,
 		"volume_db": -15.0
 	},
 	"wind_night": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": true,
 		"volume_db": -10.0
 	},
 	"light_flicker": {
-		"type": SoundType.POSITION_2D,
+		"type": 1,  # POSITION_2D
 		"loop": false,
 		"volume_db": -10.0,
 		"max_distance": 150.0,
@@ -132,17 +132,17 @@ var sound_configs := {
 
 	# UI音效
 	"ui_prompt": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": false,
 		"volume_db": -5.0
 	},
 	"ui_dialogue": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": false,
 		"volume_db": 0.0
 	},
 	"ui_warning": {
-		"type": SoundType.GLOBAL,
+		"type": 0,  # GLOBAL
 		"loop": false,
 		"volume_db": 5.0
 	}
@@ -166,8 +166,8 @@ func play(sound_name: String) -> AudioStreamPlayer:
 		push_warning("音效未定义: %s" % sound_name)
 		return null
 
-	var config := sound_configs[sound_name]
-	if config["type"] != SoundType.GLOBAL:
+	var config : Dictionary = sound_configs[sound_name]
+	if config["type"] != 0:  # GLOBAL
 		push_warning("音效 %s 不是全局音效，请使用 play_2d" % sound_name)
 		return null
 
@@ -189,8 +189,8 @@ func play_2d(sound_name: String, position: Vector2) -> AudioStreamPlayer2D:
 		push_warning("音效未定义: %s" % sound_name)
 		return null
 
-	var config := sound_configs[sound_name]
-	if config["type"] != SoundType.POSITION_2D:
+	var config : Dictionary = sound_configs[sound_name]
+	if config["type"] != 1:  # POSITION_2D
 		push_warning("音效 %s 不是2D音效，请使用 play" % sound_name)
 		return null
 
@@ -209,7 +209,7 @@ func play_2d(sound_name: String, position: Vector2) -> AudioStreamPlayer2D:
 # 停止音效
 func stop(sound_name: String):
 	if active_sounds.has(sound_name):
-		var player := active_sounds[sound_name]
+		var player : AudioStreamPlayer = active_sounds[sound_name]
 		player.stop()
 		player.queue_free()
 		active_sounds.erase(sound_name)
@@ -303,9 +303,12 @@ func _create_2d_player(sound_name: String, config: Dictionary) -> AudioStreamPla
 	player.attenuation = config["attenuation"]
 	player.bus = BUS_SFX
 
-	# 添加到场景树（需要父节点）
-	# 这里暂时添加到AudioManager，实际应该添加到合适的父节点
-	get_tree().current_scene.add_child(player)
+	# 添加到场景树
+	var tree := get_tree()
+	if tree and tree.current_scene:
+		tree.current_scene.add_child(player)
+	else:
+		add_child(player)
 
 	return player
 
@@ -316,7 +319,7 @@ func _load_sound(sound_name: String) -> AudioStream:
 	var extensions := [".wav", ".ogg", ".mp3"]
 
 	for ext in extensions:
-		var path := AUDIO_PATH + _get_sound_category(sound_name) + "/" + sound_name + ext
+		var path : String = AUDIO_PATH + _get_sound_category(sound_name) + "/" + sound_name + ext
 		if ResourceLoader.exists(path):
 			return load(path)
 
@@ -328,10 +331,10 @@ func _get_sound_category(sound_name: String) -> String:
 	   sound_name.begins_with("breach") or sound_name.begins_with("search"):
 		return "ghost"
 	elif sound_name.begins_with("footstep") or sound_name.begins_with("heartbeat") or \
-	     sound_name.begins_with("breath"):
+		 sound_name.begins_with("breath"):
 		return "player"
 	elif sound_name.begins_with("door") or sound_name.begins_with("wind") or \
-	     sound_name.begins_with("light"):
+		 sound_name.begins_with("light"):
 		return "environment"
 	else:
 		return "ui"

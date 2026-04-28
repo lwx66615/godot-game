@@ -85,23 +85,30 @@ func _ready():
 	search_duration = SEARCH_BASE_TIME + randf_range(-SEARCH_VARIANCE, SEARCH_VARIANCE)
 
 func _physics_process(delta):
+	# 更新逃脱道具效果计时器
+	_update_escape_item_effects(delta)
+
 	# 更新感知系统
 	_update_perception(delta)
 
-	# 根据状态执行行为
-	match current_state:
-		State.PATROL:
-			_patrol_behavior(delta)
-		State.OBSERVE:
-			_observe_behavior(delta)
-		State.CHASE:
-			_chase_behavior(delta)
-		State.KNOCK:
-			_knock_behavior(delta)
-		State.BREACH:
-			_breach_behavior(delta)
-		State.SEARCH:
-			_search_behavior(delta)
+	# 如果被逃脱道具吸引，跳过正常行为
+	if is_attracted:
+		_attract_behavior(delta)
+	else:
+		# 根据状态执行行为
+		match current_state:
+			State.PATROL:
+				_patrol_behavior(delta)
+			State.OBSERVE:
+				_observe_behavior(delta)
+			State.CHASE:
+				_chase_behavior(delta)
+			State.KNOCK:
+				_knock_behavior(delta)
+			State.BREACH:
+				_breach_behavior(delta)
+			State.SEARCH:
+				_search_behavior(delta)
 
 	# 检查状态转换
 	_check_state_transition()
@@ -115,6 +122,12 @@ func _physics_process(delta):
 
 func _update_perception(delta: float):
 	if target == null:
+		return
+
+	# 如果感知被护身符屏蔽，只允许衰减
+	if is_perception_zero:
+		perception_value = max(0.0, perception_value - PERCEPTION_STILL_DECAY * delta)
+		perception_updated.emit(perception_value)
 		return
 
 	var distance := global_position.distance_to(target.global_position)
@@ -460,3 +473,56 @@ func _stop_drag_sound():
 func _update_drag_sound():
 	if is_playing_drag_sound and drag_sound_player and is_instance_valid(drag_sound_player):
 		drag_sound_player.global_position = global_position
+
+# ==================== 逃脱道具响应 ====================
+
+# 被逃脱道具吸引
+var attract_duration := 0.0
+var is_attracted := false
+var attract_target_position := Vector2.ZERO  # 吸引目标位置
+
+# 感知值归零
+var perception_zero_duration := 0.0
+var is_perception_zero := false
+
+# 更新逃脱道具效果计时器
+func _update_escape_item_effects(delta: float):
+	# 处理吸引效果
+	if is_attracted:
+		attract_duration -= delta
+		if attract_duration <= 0.0:
+			is_attracted = false
+			attract_duration = 0.0
+
+	# 处理感知归零效果
+	if is_perception_zero:
+		perception_zero_duration -= delta
+		if perception_zero_duration <= 0.0:
+			is_perception_zero = false
+			perception_zero_duration = 0.0
+
+# 吸引状态行为
+func _attract_behavior(_delta: float):
+	# 移动到吸引目标位置
+	var to_target := attract_target_position - global_position
+	var distance := to_target.length()
+
+	if distance > 16.0:  # 还没到达目标位置
+		var direction := to_target.normalized()
+		velocity = direction * CHASE_BASE_SPEED
+		facing_direction = direction
+	else:
+		# 到达目标位置，停止移动
+		velocity = Vector2.ZERO
+
+# 被逃脱道具吸引（沾满血迹的门把手）
+func attract_to_position(duration: float, target_pos: Vector2):
+	is_attracted = true
+	attract_duration = duration
+	attract_target_position = target_pos
+
+# 感知值归零（断裂的护身符）
+func set_perception_zero(duration: float):
+	is_perception_zero = true
+	perception_zero_duration = duration
+	perception_value = 0.0

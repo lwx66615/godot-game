@@ -6,6 +6,7 @@ var player: Player
 var ghost: Ghost
 var game_manager: GameManager
 var game_ui  # GameUI类型，使用弱类型避免加载顺序问题
+var inventory: Inventory
 var test_npc: NPC
 var test_door: Door
 var test_hide_spot: HideSpot
@@ -27,6 +28,10 @@ func _ready():
 	# 创建游戏管理器
 	game_manager = GameManager.new()
 	add_child(game_manager)
+
+	# 创建物品栏
+	inventory = Inventory.new()
+	add_child(inventory)
 
 	# 创建音频管理器
 	var audio_manager := AudioManager.new()
@@ -146,6 +151,12 @@ func _ready():
 	test_npc.dialogue_started.connect(_on_npc_dialogue_started)
 	test_npc.dialogue_ended.connect(_on_npc_dialogue_ended)
 
+	# 创建测试物品
+	_create_test_items()
+
+	# 创建测试搜刮点
+	_create_test_searchables()
+
 	# 创建UI
 	_create_ui()
 
@@ -188,6 +199,95 @@ func _create_test_room():
 	hide_label.position = Vector2(80, 290)
 	hide_label.add_theme_font_size_override("font_size", 10)
 	add_child(hide_label)
+
+func _create_test_items():
+	# 创建测试物品：饼干
+	var biscuit := ItemPickup.new()
+	biscuit.item_id = "biscuit"
+	biscuit.count = 2
+	biscuit.position = Vector2(200, 100)
+	_add_item_visual(biscuit, Color(0.8, 0.7, 0.5))
+	add_child(biscuit)
+
+	# 创建测试物品：瓶装水
+	var water := ItemPickup.new()
+	water.item_id = "bottled_water"
+	water.count = 1
+	water.position = Vector2(250, 100)
+	_add_item_visual(water, Color(0.3, 0.5, 0.8))
+	add_child(water)
+
+	# 创建测试物品：绷带
+	var bandage := ItemPickup.new()
+	bandage.item_id = "bandage"
+	bandage.count = 1
+	bandage.position = Vector2(300, 100)
+	_add_item_visual(bandage, Color(0.9, 0.9, 0.9))
+	add_child(bandage)
+
+	# 创建测试物品：沾满血迹的门把手（逃脱道具）
+	var doorknob := ItemPickup.new()
+	doorknob.item_id = "bloody_doorknob"
+	doorknob.count = 1
+	doorknob.position = Vector2(350, 100)
+	_add_item_visual(doorknob, Color(0.6, 0.2, 0.2))
+	add_child(doorknob)
+
+func _add_item_visual(item: ItemPickup, color: Color):
+	var sprite := ColorRect.new()
+	sprite.color = color
+	sprite.size = Vector2(8, 8)
+	sprite.position = Vector2(-4, -4)
+	item.add_child(sprite)
+
+func _create_test_searchables():
+	# 创建测试搜刮点：储物柜
+	var cabinet := Searchable.new()
+	cabinet.search_name = "储物柜"
+	cabinet.position = Vector2(150, 150)
+	cabinet.loot_table = [
+		{"item_id": "biscuit", "count": 1, "chance": 0.8},
+		{"item_id": "bottled_water", "count": 1, "chance": 0.5}
+	]
+	_add_searchable_visual(cabinet, Color(0.4, 0.3, 0.2))
+	add_child(cabinet)
+	cabinet.searched.connect(_on_searchable_searched)
+
+	# 创建测试搜刮点：医务室柜子
+	var med_cabinet := Searchable.new()
+	med_cabinet.search_name = "医务室柜子"
+	med_cabinet.position = Vector2(450, 150)
+	med_cabinet.loot_table = [
+		{"item_id": "bandage", "count": 1, "chance": 0.7},
+		{"item_id": "sedative", "count": 1, "chance": 0.3}
+	]
+	_add_searchable_visual(med_cabinet, Color(0.3, 0.4, 0.3))
+	add_child(med_cabinet)
+	med_cabinet.searched.connect(_on_searchable_searched)
+
+func _add_searchable_visual(searchable: Searchable, color: Color):
+	var sprite := ColorRect.new()
+	sprite.color = color
+	sprite.size = Vector2(24, 32)
+	sprite.position = Vector2(-12, -16)
+	searchable.add_child(sprite)
+
+	# 添加标签
+	var label := Label.new()
+	label.text = searchable.search_name
+	label.position = Vector2(-20, -25)
+	label.add_theme_font_size_override("font_size", 8)
+	searchable.add_child(label)
+
+func _on_searchable_searched(searchable: Searchable, items: Array):
+	var item_names: Array = []
+	for item in items:
+		var item_name: String = Inventory.instance.get_item_name(item["item_id"])
+		item_names.append("%s x%d" % [item_name, item["count"]])
+	if item_names.is_empty():
+		print("搜刮 %s: 什么都没找到" % searchable.search_name)
+	else:
+		print("搜刮 %s: 获得 %s" % [searchable.search_name, ", ".join(item_names)])
 
 func _create_ui():
 	# 状态显示
