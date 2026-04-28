@@ -1,0 +1,38 @@
+# Godot 4+ specific ignores
+.godot/
+
+# Godot-specific ignores
+*.translation
+
+# Note: .import and .uid files should be committed for Godot 4
+
+# Imported translations
+*.translation
+
+# Mono-specific ignores
+.mono/
+data_*/
+mono_crash.*.json
+
+# Build results
+build/
+*.exe
+*.x86_64
+*.x86
+*.apk
+*.aab
+
+# OS/Editor specific
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Claude Code
+.claude/
