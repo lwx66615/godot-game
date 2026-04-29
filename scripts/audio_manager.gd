@@ -155,6 +155,41 @@ var active_2d_sounds := []  # 正在播放的2D音效列表
 # 音效资源路径
 const AUDIO_PATH := "res://assets/audio/"
 
+# 占位符音效缓存
+var placeholder_cache := {}  # sound_name -> AudioStreamWAV
+
+# 占位符音效配置
+const PLACEHOLDER_CONFIGS := {
+	# 诡异音效
+	"drag_knife": {"freq": 80.0, "duration": 0.5, "wave": "sawtooth", "volume": 0.3},
+	"knock_slow": {"freq": 200.0, "duration": 0.15, "wave": "square", "volume": 0.5},
+	"knock_medium": {"freq": 250.0, "duration": 0.12, "wave": "square", "volume": 0.6},
+	"knock_fast": {"freq": 300.0, "duration": 0.1, "wave": "square", "volume": 0.7},
+	"breach": {"freq": 150.0, "duration": 0.3, "wave": "noise", "volume": 0.8},
+	"search_pace": {"freq": 100.0, "duration": 0.2, "wave": "sine", "volume": 0.2},
+
+	# 玩家音效
+	"footstep_walk": {"freq": 400.0, "duration": 0.08, "wave": "noise", "volume": 0.3},
+	"footstep_run": {"freq": 400.0, "duration": 0.1, "wave": "noise", "volume": 0.5},
+	"heartbeat_slow": {"freq": 60.0, "duration": 0.3, "wave": "sine", "volume": 0.4},
+	"heartbeat_fast": {"freq": 80.0, "duration": 0.2, "wave": "sine", "volume": 0.5},
+	"breath_normal": {"freq": 300.0, "duration": 0.5, "wave": "noise", "volume": 0.15},
+	"breath_stress": {"freq": 350.0, "duration": 0.3, "wave": "noise", "volume": 0.25},
+
+	# 环境音效
+	"door_open": {"freq": 300.0, "duration": 0.2, "wave": "sawtooth", "volume": 0.4},
+	"door_close": {"freq": 250.0, "duration": 0.15, "wave": "sawtooth", "volume": 0.5},
+	"door_creak": {"freq": 500.0, "duration": 0.4, "wave": "sine", "volume": 0.3},
+	"wind_day": {"freq": 200.0, "duration": 1.0, "wave": "noise", "volume": 0.2},
+	"wind_night": {"freq": 150.0, "duration": 1.0, "wave": "noise", "volume": 0.25},
+	"light_flicker": {"freq": 1000.0, "duration": 0.05, "wave": "square", "volume": 0.2},
+
+	# UI音效
+	"ui_prompt": {"freq": 600.0, "duration": 0.1, "wave": "sine", "volume": 0.3},
+	"ui_dialogue": {"freq": 500.0, "duration": 0.08, "wave": "sine", "volume": 0.25},
+	"ui_warning": {"freq": 800.0, "duration": 0.15, "wave": "square", "volume": 0.4},
+}
+
 func _ready():
 	instance = self
 
@@ -267,13 +302,8 @@ func get_bus_volume(bus_name: String) -> float:
 func _create_global_player(sound_name: String, config: Dictionary) -> AudioStreamPlayer:
 	var player := AudioStreamPlayer.new()
 
-	# 加载音效资源（如果存在）
-	var stream := _load_sound(sound_name)
-	if stream:
-		player.stream = stream
-	else:
-		# 占位符：生成简单的蜂鸣声
-		player.stream = _generate_placeholder_sound()
+	# 加载音效资源（如果存在）或生成占位符
+	player.stream = _load_sound(sound_name)
 
 	player.volume_db = config["volume_db"]
 	player.bus = BUS_SFX
@@ -290,13 +320,8 @@ func _create_global_player(sound_name: String, config: Dictionary) -> AudioStrea
 func _create_2d_player(sound_name: String, config: Dictionary) -> AudioStreamPlayer2D:
 	var player := AudioStreamPlayer2D.new()
 
-	# 加载音效资源（如果存在）
-	var stream := _load_sound(sound_name)
-	if stream:
-		player.stream = stream
-	else:
-		# 占位符：生成简单的蜂鸣声
-		player.stream = _generate_placeholder_sound()
+	# 加载音效资源（如果存在）或生成占位符
+	player.stream = _load_sound(sound_name)
 
 	player.volume_db = config["volume_db"]
 	player.max_distance = config["max_distance"]
@@ -323,7 +348,8 @@ func _load_sound(sound_name: String) -> AudioStream:
 		if ResourceLoader.exists(path):
 			return load(path)
 
-	return null
+	# 没有找到外部资源，生成占位符音效
+	return _generate_placeholder_sound(sound_name)
 
 # 根据音效名称判断分类
 func _get_sound_category(sound_name: String) -> String:
@@ -339,16 +365,75 @@ func _get_sound_category(sound_name: String) -> String:
 	else:
 		return "ui"
 
-# 生成占位符音效（简单的蜂鸣声）
-func _generate_placeholder_sound() -> AudioStream:
-	# 使用AudioStreamGenerator生成简单的蜂鸣声
-	var generator := AudioStreamGenerator.new()
-	generator.mix_rate = 22050  # 低采样率，减少CPU占用
-	generator.buffer_length = 0.1  # 短缓冲
+# 生成占位符音效（程序化生成的简单音效）
+func _generate_placeholder_sound(sound_name: String) -> AudioStreamWAV:
+	# 检查缓存
+	if placeholder_cache.has(sound_name):
+		return placeholder_cache[sound_name]
 
-	# 注意：实际播放时需要填充音频数据
-	# 这里只是创建一个空的占位符，实际音效需要外部资源
-	return generator
+	# 获取配置
+	var config: Dictionary = PLACEHOLDER_CONFIGS.get(sound_name, {
+		"freq": 440.0,
+		"duration": 0.1,
+		"wave": "sine",
+		"volume": 0.5
+	})
+
+	var frequency: float = config.freq
+	var duration: float = config.duration
+	var waveform: String = config.wave
+	var volume: float = config.volume
+
+	# 生成音频数据
+	var sample_rate: int = 22050
+	var num_samples: int = int(duration * sample_rate)
+	var samples := PackedByteArray()
+	samples.resize(num_samples * 2)  # 16位样本
+
+	for i in range(num_samples):
+		var t: float = float(i) / float(sample_rate)
+		var sample_value: float = 0.0
+
+		# 生成波形
+		match waveform:
+			"sine":
+				sample_value = sin(2.0 * PI * frequency * t)
+			"square":
+				sample_value = 1.0 if sin(2.0 * PI * frequency * t) > 0.0 else -1.0
+			"sawtooth":
+				sample_value = 2.0 * fmod(t * frequency, 1.0) - 1.0
+			"noise":
+				sample_value = randf_range(-1.0, 1.0)
+			_:
+				sample_value = sin(2.0 * PI * frequency * t)
+
+		# 应用音量和淡入淡出
+		var envelope: float = 1.0
+		var fade_samples: int = mini(num_samples / 10, 100)
+
+		if i < fade_samples:
+			envelope = float(i) / float(fade_samples)
+		elif i > num_samples - fade_samples:
+			envelope = float(num_samples - i) / float(fade_samples)
+
+		sample_value *= volume * envelope
+
+		# 转换为16位整数（小端序）
+		var int_value: int = clampi(int(sample_value * 32767.0), -32768, 32767)
+		samples.set(i * 2, int_value & 0xFF)
+		samples.set(i * 2 + 1, (int_value >> 8) & 0xFF)
+
+	# 创建 AudioStreamWAV
+	var stream := AudioStreamWAV.new()
+	stream.data = samples
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.stereo = false
+
+	# 缓存
+	placeholder_cache[sound_name] = stream
+
+	return stream
 
 # ==================== 回调 ====================
 
